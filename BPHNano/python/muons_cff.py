@@ -1,7 +1,8 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
-Path=["HLT_DoubleMu4_LowMass_Displaced", "HLT_DoubleMu4_3_LowMass"]
+Path=["HLT_DoubleMu4_LowMass_Displaced", "HLT_DoubleMu4_3_LowMass", "HLT_Mu7_IP4", "HLT_Mu8_IP6", "HLT_Mu8_IP5", "HLT_Mu8_IP3", "HLT_Mu8p5_IP3p5", "HLT_Mu9_IP6", "HLT_Mu9_IP5", "HLT_Mu9_IP4", "HLT_Mu10p5_IP3p5", "HLT_Mu12_IP6"]
+#FIXME add HLT paths for the 2025 data
 
 muonBPH = cms.EDProducer("MuonTriggerSelector",
                          muonCollection = cms.InputTag("slimmedMuons"), #same collection as in NanoAOD                                                           
@@ -14,7 +15,13 @@ muonBPH = cms.EDProducer("MuonTriggerSelector",
                         )
 
 #cuts minimun number in B both mu and e, min number of trg, dz muon, dz and dr track, 
-countTrgMuons = cms.EDFilter("PATCandViewCountFilter",
+countTrgSingleMuons = cms.EDFilter("PATCandViewCountFilter",
+    minNumber = cms.uint32(1),
+    maxNumber = cms.uint32(999999),
+    src       = cms.InputTag("muonBPH", "SelectedMuons")
+)
+
+countTrgDiMuons = cms.EDFilter("PATCandViewCountFilter",
     minNumber = cms.uint32(2),
     maxNumber = cms.uint32(999999),
     src       = cms.InputTag("muonBPH", "SelectedMuons")
@@ -24,7 +31,7 @@ muonBPHTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src  = cms.InputTag("muonBPH:SelectedMuons"),
     cut  = cms.string(""), #we should not filter on cross linked collections
     name = cms.string("Muon"),
-    doc  = cms.string("slimmedMuons after basic selection"),
+    doc  = cms.string("slimmedMuons matched to a trigger HLT object after basic selection"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(
@@ -93,14 +100,12 @@ muonBPHMCTable = cms.EDProducer("CandMCMatchTableProducerBPH",
 allMuonTable = muonBPHTable.clone(
     src  = cms.InputTag("muonBPH:AllMuons"),
     name = cms.string("AllMuon"),
-    doc  = cms.string("HLT Muons matched with reco muons"), #reco muon matched to triggering muon"),
+    doc  = cms.string("All the slimmed muons passing basic selection"),
     variables = cms.PSet(
-        CandVars,
-        vx = Var("vx()", float, doc="x coordinate of vertex position [cm]"),
-        vy = Var("vy()", float, doc="y coordinate of vertex position [cm]"),
-        vz = Var("vz()", float, doc="z coordinate of vertex position [cm]")
+        muonBPHTable.variables,
    )
 )
+
 
 muonBPHSequence   = cms.Sequence(muonBPH)
 muonBPHSequenceMC = cms.Sequence(muonBPH + muonBPHMCMatch)
