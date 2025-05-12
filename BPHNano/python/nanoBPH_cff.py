@@ -22,6 +22,7 @@ from PhysicsTools.BPHNano.KshortToPiPi_cff import *
 from PhysicsTools.BPHNano.BToKLL_cff import *
 from PhysicsTools.BPHNano.BToKstarLL_cff import *
 from PhysicsTools.BPHNano.BToKshortLL_cff import *
+from PhysicsTools.BPHNano.BsToPhiPhiTo4K_cff import *
 
 
 vertexTable.svSrc = cms.InputTag("slimmedSecondaryVertices")
@@ -42,32 +43,38 @@ def nanoAOD_customizeMC(process):
     return process
 
 
-
-def nanoAOD_customizeMuonBPH(process,isMC):
+def nanoAOD_customizeSingleMuonBPH(process, isMC):
     if isMC:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequenceMC + muonBPHTablesMC)
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequenceMC + muonBPHTablesMC )
     else:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequence + countTrgMuons + muonBPHTables)
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequence + countTrgSingleMuons + muonBPHTables )
     return process
 
 
 
 def nanoAOD_customizeDiMuonBPH(process, isMC):
     if isMC:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + MuMuSequence + MuMuTables )
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequenceMC + muonBPHTablesMC + MuMuSequence + MuMuTables )
     else:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + MuMuSequence + CountDiMuonBPH + MuMuTables)
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequence + countTrgDiMuons + muonBPHTables + MuMuSequence + CountDiMuonBPH + MuMuTables )
     return process
 
 
 
-def nanoAOD_customizeTrackBPH(process,isMC):
+def nanoAOD_customizeTrackBPHSingleMuon(process,isMC):
     if isMC:
-       process.nanoSequence =  cms.Sequence( process.nanoSequence + tracksBPHSequenceMC + tracksBPHTablesMC)
+       process.nanoSequence =  cms.Sequence( process.nanoSequence + tracksBPHSequenceMCSingleMuon + tracksBPHSingleMuonTablesMC )
     else:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + tracksBPHSequence + tracksBPHTables)
+       process.nanoSequence = cms.Sequence( process.nanoSequence + tracksBPHSequenceSingleMuon + tracksBPHSingleMuonTables )
     return process
 
+
+def nanoAOD_customizeTrackBPHDiMuon(process,isMC):
+    if isMC:
+       process.nanoSequence =  cms.Sequence( process.nanoSequence + tracksBPHSequenceMCDiMuon + tracksBPHDiMuonTablesMC )
+    else:
+       process.nanoSequence = cms.Sequence( process.nanoSequence + tracksBPHSequenceDiMuon + tracksBPHDiMuonTables )
+    return process
 
 
 def nanoAOD_customizeBToKLL(process,isMC):
@@ -105,5 +112,15 @@ def nanoAOD_customizeBToXLL(process,isMC):
     else:
        process.nanoSequence = cms.Sequence( process.nanoSequence + BToKMuMuSequence + BToKMuMuTables + KshortToPiPiSequence + KshortToPiPiTables + BToKshortMuMuSequence +BToKshortMuMuTables + KstarPiKSequence +  KstarPiKTables +KstarPiKTables+ BToKstarMuMuSequence + BToKstarMuMuTables )
     return process
+
+
+
+def nanoAOD_customizeBsToPhiPhiTo4K(process, isMC):
+    if isMC:
+       process.nanoSequence = cms.Sequence( process.nanoSequence + PhiToKKSequence + BsToPhiPhiTo4KSequence + PhiToKKTables + BsToPhiPhiTo4KTable ) #FIXME is it correct?
+    else:
+       process.nanoSequence = cms.Sequence( process.nanoSequence + PhiToKKSequence + BsToPhiPhiTo4KSequence + PhiToKKTables + BsToPhiPhiTo4KTable + CountPhiToKK + CountBsToPhiPhiTo4K )
+    return process
+
 
 
