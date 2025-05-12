@@ -29,7 +29,6 @@
 
 
 
-
 class DiTrackBuilder : public edm::global::EDProducer<> {
 
 
@@ -81,9 +80,10 @@ void DiTrackBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup con
 
 
   // output
-  std::unique_ptr<pat::CompositeCandidateCollection> kstar_out(new pat::CompositeCandidateCollection());
+  std::unique_ptr<pat::CompositeCandidateCollection> cand_out(new pat::CompositeCandidateCollection());
 
-
+  // needed to sort in pt
+  std::vector<pat::CompositeCandidate> vector_candidates;
 
   // main loop
   for (size_t trk1_idx = 0; trk1_idx < pfcands->size(); ++trk1_idx ) {
@@ -98,37 +98,53 @@ void DiTrackBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup con
       if (!trk2_selection_(*trk2_ptr)) continue;
 
       bool UsedAgain = false;
+
+      std::vector< std::pair<double, double> > list_masses;
+      if (trk1_mass_ == trk2_mass_) {
+        list_masses.push_back(std::pair<double, double>(trk1_mass_, trk2_mass_));
+      }
+      else{
+        list_masses.push_back(std::pair<double, double>(trk1_mass_, trk2_mass_));
+        list_masses.push_back(std::pair<double, double>(trk2_mass_, trk1_mass_));
+      }
+
       // Loop in all possible hypothesis
-      for ( std::pair<double, double> masses : { std::pair<double, double>(trk1_mass_, trk2_mass_), std::pair<double, double>(trk2_mass_, trk1_mass_) } ) {
-        // create a K* candidate; add first quantities that can be used for pre fit selection
-        pat::CompositeCandidate kstar_cand;
+      for ( std::pair<double, double> masses : list_masses ) {
+        // create a candidate; add first quantities that can be used for pre fit selection
+        pat::CompositeCandidate cand;
+
         auto trk1_p4 = trk1_ptr->polarP4();
         auto trk2_p4 = trk2_ptr->polarP4();
         trk1_p4.SetM(masses.first);
         trk2_p4.SetM(masses.second);
+
         //adding stuff for pre fit selection
-        kstar_cand.setP4(trk1_p4 + trk2_p4);
-        kstar_cand.setCharge(trk1_ptr->charge() + trk2_ptr->charge());
-        kstar_cand.addUserFloat("trk_deltaR", reco::deltaR(*trk1_ptr, *trk2_ptr));
+        cand.setP4(trk1_p4 + trk2_p4);
+        cand.setCharge(trk1_ptr->charge() + trk2_ptr->charge());
+        cand.addUserFloat("trk_deltaR", reco::deltaR(*trk1_ptr, *trk2_ptr));
+
         // save indices
-        kstar_cand.addUserInt("trk1_idx", trk1_idx );
-        kstar_cand.addUserInt("trk2_idx", trk2_idx );
-        kstar_cand.addUserFloat("trk1_mass", masses.first);
-        kstar_cand.addUserFloat("trk2_mass", masses.second);
+        cand.addUserInt("trk1_idx", trk1_idx );
+        cand.addUserInt("trk2_idx", trk2_idx );
+        cand.addUserFloat("trk1_mass", masses.first);
+        cand.addUserFloat("trk2_mass", masses.second);
+
         // save cands
-        kstar_cand.addUserCand("trk1", trk1_ptr );
-        kstar_cand.addUserCand("trk2", trk2_ptr );
+        cand.addUserCand("trk1", trk1_ptr );
+        cand.addUserCand("trk2", trk2_ptr );
+
         // selection before fit
-        if ( !pre_vtx_selection_(kstar_cand) ) continue;
+        if ( !pre_vtx_selection_(cand) ) continue;
         //std::cout<<"trk1 "<<trk1_idx<<" trk2 "<<trk2_idx<<" dr "<< reco::deltaR(*trk1_ptr, *trk2_ptr)<<" pt1 "<<trk1_p4.pt()<<" pt2 "<<trk2_p4.pt()<<" mass "<<(trk1_p4+trk2_p4).mass()<<std::endl;
+
         KinVtxFitter fitter(
-              {ttracks->at(trk1_idx), ttracks->at(trk2_idx)},
+            {ttracks->at(trk1_idx), ttracks->at(trk2_idx)},
             { masses.first, masses.second },
             {K_SIGMA, K_SIGMA} //K and PI sigma equal...
                            );
 
         if ( !fitter.success() ) continue;
-        kstar_cand.setVertex(
+        cand.setVertex(
           reco::Candidate::Point(
             fitter.fitted_vtx().x(),
             fitter.fitted_vtx().y(),
@@ -136,36 +152,47 @@ void DiTrackBuilder::produce(edm::StreamID, edm::Event &evt, edm::EventSetup con
           )
         );
         // save quantities after fit
-        kstar_cand.addUserInt("sv_ok", fitter.success() ? 1 : 0);
-        kstar_cand.addUserFloat("sv_chi2", fitter.chi2());
-        kstar_cand.addUserFloat("sv_ndof", fitter.dof());
-        kstar_cand.addUserFloat("sv_prob", fitter.prob());
-        kstar_cand.addUserFloat("fitted_mass", fitter.fitted_candidate().mass() );
-        kstar_cand.addUserFloat("fitted_pt",
+        cand.addUserInt("sv_ok", fitter.success() ? 1 : 0);
+        cand.addUserFloat("sv_chi2", fitter.chi2());
+        cand.addUserFloat("sv_ndof", fitter.dof());
+        cand.addUserFloat("sv_prob", fitter.prob());
+        cand.addUserFloat("fitted_mass", fitter.fitted_candidate().mass() );
+        cand.addUserFloat("fitted_pt",
                                 fitter.fitted_candidate().globalMomentum().perp() );
 
-        kstar_cand.addUserFloat("fitted_eta",
+        cand.addUserFloat("fitted_eta",
                                 fitter.fitted_candidate().globalMomentum().eta() );
 
-        kstar_cand.addUserFloat("fitted_phi",
+        cand.addUserFloat("fitted_phi",
                                 fitter.fitted_candidate().globalMomentum().phi() );
 
-        kstar_cand.addUserInt("second_mass_hypothesis", UsedAgain );
-        kstar_cand.addUserFloat("vtx_x", kstar_cand.vx());
-        kstar_cand.addUserFloat("vtx_y", kstar_cand.vy());
-        kstar_cand.addUserFloat("vtx_z", kstar_cand.vz());
+        cand.addUserInt("second_mass_hypothesis", UsedAgain );
+        cand.addUserFloat("vtx_x", cand.vx());
+        cand.addUserFloat("vtx_y", cand.vy());
+        cand.addUserFloat("vtx_z", cand.vz());
+        cand.addUserFloat("deltaR_postfit", reco::deltaR(fitter.daughter_p4(0), fitter.daughter_p4(1)));
+        cand.addUserFloat("fitted_k1_pt", fitter.daughter_p4(0).pt()); 
+        cand.addUserFloat("fitted_k2_pt", fitter.daughter_p4(1).pt()); 
 
         // after fit selection
-        if ( !post_vtx_selection_(kstar_cand) ) continue;
-        kstar_out->emplace_back(kstar_cand);
+        if ( !post_vtx_selection_(cand) ) continue;
+        vector_candidates.emplace_back(cand);   
         UsedAgain = true;
-        if (masses.first == masses.second) break;
 
       } // end for ( auto & masses:
     } // end for(size_t trk2_idx = trk1_idx + 1
   } //for(size_t trk1_idx = 0
 
-  evt.put(std::move(kstar_out));
+  // sort candidate collection in pt
+  std::sort(vector_candidates.begin(), vector_candidates.end(), 
+             [] (auto & cand1, auto & cand2) -> 
+                  bool {return (cand1.pt() > cand2.pt());} 
+           );
+
+  for (auto & cand: vector_candidates){
+    cand_out->emplace_back(cand);
+  }
+  evt.put(std::move(cand_out));
 }
 
 #include "FWCore/Framework/interface/MakerMacros.h"
