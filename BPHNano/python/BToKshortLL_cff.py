@@ -10,7 +10,7 @@ BToKshortMuMu = cms.EDProducer(
     v0s = cms.InputTag('KshortToPiPi','SelectedV0Collection'),
     v0TransientTracks = cms.InputTag('KshortToPiPi', 'SelectedV0TransientCollection'),
     tracks = cms.InputTag("packedPFCandidates"),
-    PUtracks = cms.InputTag('tracksBPH', 'SelectedTracks'),
+    PUtracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTracks'),
     beamSpot = cms.InputTag("offlineBeamSpot"),
     preVtxSelection  = cms.string('pt > 5.0 '
                                   '&& 4.5 < mass && mass < 6. '

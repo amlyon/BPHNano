@@ -3,8 +3,8 @@ from PhysicsTools.NanoAOD.common_cff import *
 
 KstarToPiK = cms.EDProducer(
     'DiTrackBuilder',
-    tracks = cms.InputTag('tracksBPH', 'SelectedTracks'),
-    transientTracks = cms.InputTag('tracksBPH', 'SelectedTransientTracks'),
+    tracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTracks'),
+    transientTracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTransientTracks'),
     trk1Selection   = cms.string(''),
     trk2Selection   = cms.string(''),
     trk1Mass = cms.double(0.139),

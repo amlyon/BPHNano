@@ -11,7 +11,7 @@ KshortToPiPi = cms.EDProducer(
     postVtxSelection = cms.string('0.3 < mass && mass < 0.7'
                                   '&& userFloat("sv_prob") > 0.0001'),
     beamSpot = cms.InputTag("offlineBeamSpot"),
-    track_match = cms.InputTag('tracksBPH', 'SelectedTracks')
+    track_match = cms.InputTag('tracksBPHDiMuon', 'SelectedTracks')
 )
 
 ########################### Tables ###########################

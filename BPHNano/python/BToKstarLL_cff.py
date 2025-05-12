@@ -8,8 +8,8 @@ BToKstarMuMu = cms.EDProducer(
     dileptons = cms.InputTag("MuMu:SelectedDiLeptons"),
     leptonTransientTracks = cms.InputTag('muonBPH', 'SelectedTransientMuons'),
     ditracks = cms.InputTag('KstarToPiK'),
-    transientTracks = cms.InputTag('tracksBPH', 'SelectedTransientTracks'),
-    PUtracks = cms.InputTag('tracksBPH', 'SelectedTracks'),
+    transientTracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTransientTracks'),
+    PUtracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTracks'),
     beamSpot = cms.InputTag("offlineBeamSpot"),
     preVtxSelection  = cms.string('pt > 5.'
                                   '&& 4.5 < mass && mass < 6.'
