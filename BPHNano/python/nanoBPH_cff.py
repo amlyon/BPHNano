@@ -45,18 +45,18 @@ def nanoAOD_customizeMC(process):
 
 def nanoAOD_customizeSingleMuonBPH(process, isMC):
     if isMC:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequenceMC + muonBPHTablesMC )
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSingleMuonSequenceMC + muonBPHSingleMuonTablesMC )
     else:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequence + countTrgSingleMuons + muonBPHTables )
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSingleMuonSequence + countTrgSingleMuons + muonBPHSingleMuonTables )
     return process
 
 
 
 def nanoAOD_customizeDiMuonBPH(process, isMC):
     if isMC:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequenceMC + muonBPHTablesMC + MuMuSequence + MuMuTables )
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHDiMuonSequenceMC + muonBPHDiMuonTablesMC + MuMuSequence + MuMuTables )
     else:
-       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHSequence + countTrgDiMuons + muonBPHTables + MuMuSequence + CountDiMuonBPH + MuMuTables )
+       process.nanoSequence = cms.Sequence( process.nanoSequence + muonBPHDiMuonSequence + countTrgDiMuons + muonBPHDiMuonTables + MuMuSequence + CountDiMuonBPH + MuMuTables )
     return process
 
 

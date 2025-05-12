@@ -18,7 +18,7 @@ tracksBPHDiMuon = cms.EDProducer(
 tracksBPHSingleMuon = cms.EDProducer(
     "TrackMergerSingleMuon",
     beamSpot        = cms.InputTag("offlineBeamSpot"),
-    trgmuons         = cms.InputTag('muonBPH', 'SelectedMuons'), 
+    trgmuons         = cms.InputTag('muonBPHSingleMuon', 'SelectedMuons'), 
     tracks          = cms.InputTag("packedPFCandidates"),
     lostTracks      = cms.InputTag("lostTracks"),
     trackSelection  = cms.string("pt>0.6 && abs(eta)<2.5"),
@@ -91,13 +91,12 @@ tracksBPHMCMatchSingleMuon = tracksBPHMCMatchDiMuon.clone(
 )
 
 
-
 tracksBPHMCDiMuonTable = cms.EDProducer("CandMCMatchTableProducerBPH",
     recoObjects   = tracksBPHMCMatchDiMuon.src,
     objName       = trackBPHDiMuonTable.name,
     objType       = trackBPHDiMuonTable.name,
     genParts      = cms.InputTag("finalGenParticlesBPH"),
-    mcMap         = cms.InputTag("tracksBPHMCMatch"),
+    mcMap         = cms.InputTag("tracksBPHMCMatchDiMuon"),
     objBranchName = cms.string("genPart"),
     genBranchName = cms.string("track"),
     docString     = cms.string("MC matching to status==1 kaons or pions"),
@@ -108,6 +107,7 @@ tracksBPHMCSingleMuonTable = tracksBPHMCDiMuonTable.clone(
     recoObjects   = tracksBPHMCMatchSingleMuon.src,
     objName       = trackBPHSingleMuonTable.name,
     objType       = trackBPHSingleMuonTable.name,
+    mcMap         = cms.InputTag("tracksBPHMCMatchSingleMuon"),
 )
 
 

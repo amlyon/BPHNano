@@ -1,34 +1,40 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
-Path=["HLT_DoubleMu4_LowMass_Displaced", "HLT_DoubleMu4_3_LowMass", "HLT_Mu7_IP4", "HLT_Mu8_IP6", "HLT_Mu8_IP5", "HLT_Mu8_IP3", "HLT_Mu8p5_IP3p5", "HLT_Mu9_IP6", "HLT_Mu9_IP5", "HLT_Mu9_IP4", "HLT_Mu10p5_IP3p5", "HLT_Mu12_IP6"]
+HLT_paths_dimuon=["HLT_DoubleMu4_LowMass_Displaced", "HLT_DoubleMu4_3_LowMass"]
+HLT_paths_singlemuon=["HLT_Mu7_IP4", "HLT_Mu8_IP6", "HLT_Mu8_IP5", "HLT_Mu8_IP3", "HLT_Mu8p5_IP3p5", "HLT_Mu9_IP6", "HLT_Mu9_IP5", "HLT_Mu9_IP4", "HLT_Mu10p5_IP3p5", "HLT_Mu12_IP6"]
 #FIXME add HLT paths for the 2025 data
 
-muonBPH = cms.EDProducer("MuonTriggerSelector",
+muonBPHDiMuon = cms.EDProducer("MuonTriggerSelector",
                          muonCollection = cms.InputTag("slimmedMuons"), #same collection as in NanoAOD                                                           
                          bits           = cms.InputTag("TriggerResults", "", "HLT"),
                          prescales      = cms.InputTag("patTrigger"),
                          objects        = cms.InputTag("slimmedPatTrigger"),
                          maxdR_matching = cms.double(0.3), ##for the output trigger matched collection
                          muonSelection  = cms.string("pt > 2 && abs(eta) < 2.4"), ## on the fly selection
-                         HLTPaths       = cms.vstring(Path), ### comma to the softMuonsOnly
+                         HLTPaths       = cms.vstring(HLT_paths_dimuon), ### comma to the softMuonsOnly
+                        )
+
+muonBPHSingleMuon = muonBPHDiMuon.clone(
+                         muonSelection  = cms.string("pt > 2 && abs(eta) < 2.4"), ## on the fly selection
+                         HLTPaths       = cms.vstring(HLT_paths_singlemuon), ### comma to the softMuonsOnly
                         )
 
 #cuts minimun number in B both mu and e, min number of trg, dz muon, dz and dr track, 
-countTrgSingleMuons = cms.EDFilter("PATCandViewCountFilter",
-    minNumber = cms.uint32(1),
-    maxNumber = cms.uint32(999999),
-    src       = cms.InputTag("muonBPH", "SelectedMuons")
-)
-
 countTrgDiMuons = cms.EDFilter("PATCandViewCountFilter",
     minNumber = cms.uint32(2),
     maxNumber = cms.uint32(999999),
-    src       = cms.InputTag("muonBPH", "SelectedMuons")
+    src       = cms.InputTag("muonBPHDiMuon", "SelectedMuons")
 )
 
-muonBPHTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src  = cms.InputTag("muonBPH:SelectedMuons"),
+countTrgSingleMuons = cms.EDFilter("PATCandViewCountFilter",
+    minNumber = cms.uint32(1),
+    maxNumber = cms.uint32(999999),
+    src       = cms.InputTag("muonBPHSingleMuon", "SelectedMuons")
+)
+
+muonBPHDiMuonTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src  = cms.InputTag("muonBPHDiMuon:SelectedMuons"),
     cut  = cms.string(""), #we should not filter on cross linked collections
     name = cms.string("Muon"),
     doc  = cms.string("slimmedMuons matched to a trigger HLT object after basic selection"),
@@ -74,8 +80,13 @@ muonBPHTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     ),
 )
 
-muonBPHMCMatch = cms.EDProducer("MCMatcher",                  # cut on deltaR, deltaPt/Pt; pick best by deltaR
-    src         = muonBPHTable.src,                           # final reco collection
+
+muonBPHSingleMuonTable = muonBPHDiMuonTable.clone(
+    src  = cms.InputTag("muonBPHSingleMuon:SelectedMuons"),
+)
+
+muonBPHDiMuonMCMatch = cms.EDProducer("MCMatcher",                  # cut on deltaR, deltaPt/Pt; pick best by deltaR
+    src         = muonBPHDiMuonTable.src,                           # final reco collection
     matched     = cms.InputTag("finalGenParticlesBPH"),       # final mc-truth particle collection
     mcPdgId     = cms.vint32(13),                             # one or more PDG ID (13 = mu); absolute values (see below)
     checkCharge = cms.bool(False),                            # True = require RECO and MC objects to have the same charge
@@ -86,28 +97,53 @@ muonBPHMCMatch = cms.EDProducer("MCMatcher",                  # cut on deltaR, d
     resolveByMatchQuality = cms.bool(True),                   # False = just match input in order; True = pick lowest deltaR pair first
 )
 
-muonBPHMCTable = cms.EDProducer("CandMCMatchTableProducerBPH",
-    recoObjects = muonBPHTable.src,
+muonBPHSingleMuonMCMatch = muonBPHDiMuonMCMatch.clone(
+    src         = muonBPHSingleMuonTable.src,
+)
+
+muonBPHDiMuonMCTable = cms.EDProducer("CandMCMatchTableProducerBPH",
+    recoObjects = muonBPHDiMuonTable.src,
     genParts    = cms.InputTag("finalGenParticlesBPH"),
-    mcMap       = cms.InputTag("muonBPHMCMatch"),
-    objName     = muonBPHTable.name,
-    objType     = muonBPHTable.name, 
+    mcMap       = cms.InputTag("muonBPHDiMuonMCMatch"),
+    objName     = muonBPHDiMuonTable.name,
+    objType     = muonBPHDiMuonTable.name, 
     objBranchName = cms.string("genPart"),
     genBranchName = cms.string("muon"),
     docString   = cms.string("MC matching to status==1 muons"),
 )
 
-allMuonTable = muonBPHTable.clone(
-    src  = cms.InputTag("muonBPH:AllMuons"),
+muonBPHSingleMuonMCTable = muonBPHDiMuonMCTable.clone(
+    recoObjects = muonBPHSingleMuonTable.src,
+    objName     = muonBPHSingleMuonTable.name,
+    objType     = muonBPHSingleMuonTable.name, 
+)
+
+allDiMuonTable = muonBPHDiMuonTable.clone(
+    src  = cms.InputTag("muonBPHDiMuon:AllMuons"),
     name = cms.string("AllMuon"),
     doc  = cms.string("All the slimmed muons passing basic selection"),
     variables = cms.PSet(
-        muonBPHTable.variables,
+        muonBPHDiMuonTable.variables,
+   )
+)
+
+allSingleMuonTable = muonBPHSingleMuonTable.clone(
+    src  = cms.InputTag("muonBPHSingleMuon:AllMuons"),
+    name = cms.string("AllMuon"),
+    doc  = cms.string("All the slimmed muons passing basic selection"),
+    variables = cms.PSet(
+        muonBPHSingleMuonTable.variables,
    )
 )
 
 
-muonBPHSequence   = cms.Sequence(muonBPH)
-muonBPHSequenceMC = cms.Sequence(muonBPH + muonBPHMCMatch)
-muonBPHTables     = cms.Sequence(muonBPHTable)
-muonBPHTablesMC   = cms.Sequence(muonBPHTable + muonBPHMCTable)
+muonBPHDiMuonDiMuonSequence   = cms.Sequence(muonBPHDiMuon)
+muonBPHDiMuonSequenceMC = cms.Sequence(muonBPHDiMuon + muonBPHDiMuonMCMatch)
+muonBPHDiMuonTables     = cms.Sequence(muonBPHDiMuonTable)
+muonBPHDiMuonTablesMC   = cms.Sequence(muonBPHDiMuonTable + muonBPHDiMuonMCTable)
+
+muonBPHSingleMuonSingleMuonSequence   = cms.Sequence(muonBPHSingleMuon)
+muonBPHSingleMuonSequenceMC = cms.Sequence(muonBPHSingleMuon + muonBPHSingleMuonMCMatch)
+muonBPHSingleMuonTables     = cms.Sequence(muonBPHSingleMuonTable)
+muonBPHSingleMuonTablesMC   = cms.Sequence(muonBPHSingleMuonTable + muonBPHSingleMuonMCTable)
+

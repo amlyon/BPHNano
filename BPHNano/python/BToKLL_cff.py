@@ -6,7 +6,7 @@ from PhysicsTools.BPHNano.common_cff import *
 BToKmumu = cms.EDProducer(
     'BToTrkLLBuilder',
     dileptons = cms.InputTag("MuMu:SelectedDiLeptons"),
-    leptonTransientTracks = cms.InputTag('muonBPH', 'SelectedTransientMuons'),
+    leptonTransientTracks = cms.InputTag('muonBPHDiMuon', 'SelectedTransientMuons'),
     dileptonKinVtxs = cms.InputTag('MuMu:SelectedDiLeptonKinVtxs'),
     kaons = cms.InputTag('tracksBPHDiMuon', 'SelectedTracks'),
     kaonsTransientTracks = cms.InputTag('tracksBPHDiMuon', 'SelectedTransientTracks'),
