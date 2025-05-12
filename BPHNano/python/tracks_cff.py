@@ -1,10 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
-tracksBPH = cms.EDProducer(
-    "TrackMerger",
+
+tracksBPHDiMuon = cms.EDProducer(
+    "TrackMergerDiMuon",
     beamSpot        = cms.InputTag("offlineBeamSpot"),
-    dileptons       = cms.InputTag("MuMu:SelectedDiLeptons"),
+    trgmuons        = cms.InputTag("MuMu:SelectedDiLeptons"),
     tracks          = cms.InputTag("packedPFCandidates"),
     lostTracks      = cms.InputTag("lostTracks"),
     trackSelection  = cms.string("pt>1.0 && abs(eta)<2.4"),  # We need all tracks for tagging, no cuts here for now
@@ -14,10 +15,22 @@ tracksBPH = cms.EDProducer(
     dcaSig          = cms.double(-100000),
 )
 
+tracksBPHSingleMuon = cms.EDProducer(
+    "TrackMergerSingleMuon",
+    beamSpot        = cms.InputTag("offlineBeamSpot"),
+    trgmuons         = cms.InputTag('muonBPH', 'SelectedMuons'), 
+    tracks          = cms.InputTag("packedPFCandidates"),
+    lostTracks      = cms.InputTag("lostTracks"),
+    trackSelection  = cms.string("pt>0.6 && abs(eta)<2.5"),
+    muons           = cms.InputTag("slimmedMuons"),
+    electrons       = cms.InputTag("slimmedElectrons"),
+    maxDzDilep      = cms.double(-1.0),
+    dcaSig          = cms.double(-100000),
+)
 
-trackBPHTable = cms.EDProducer(
+trackBPHDiMuonTable = cms.EDProducer(
     "SimpleCompositeCandidateFlatTableProducer",
-    src  = cms.InputTag("tracksBPH:SelectedTracks"),
+    src  = cms.InputTag("tracksBPHDiMuon:SelectedTracks"),
     cut  = cms.string(""),
     name = cms.string("Track"),
     doc  = cms.string("track collection"),
@@ -56,8 +69,13 @@ trackBPHTable = cms.EDProducer(
 )
 
 
-tracksBPHMCMatch = cms.EDProducer("MCMatcher",              # cut on deltaR, deltaPt/Pt; pick best by deltaR
-    src         = trackBPHTable.src,                        # final reco collection
+trackBPHSingleMuonTable = trackBPHDiMuonTable.clone( 
+    src  = cms.InputTag("tracksBPHSingleMuon:SelectedTracks"),
+)
+
+
+tracksBPHMCMatchDiMuon = cms.EDProducer("MCMatcher",         # cut on deltaR, deltaPt/Pt; pick best by deltaR
+    src         = trackBPHDiMuonTable.src,                    
     matched     = cms.InputTag("finalGenParticlesBPH"),     # final mc-truth particle collection
     mcPdgId     = cms.vint32(321, 211),                     # one or more PDG ID (321 = charged kaon, 211 = charged pion); absolute values (see below)
     checkCharge = cms.bool(False),                          # True = require RECO and MC objects to have the same charge
@@ -68,20 +86,38 @@ tracksBPHMCMatch = cms.EDProducer("MCMatcher",              # cut on deltaR, del
     resolveByMatchQuality = cms.bool(True),                 # False = just match input in order; True = pick lowest deltaR pair first
 )
 
+tracksBPHMCMatchSingleMuon = tracksBPHMCMatchDiMuon.clone(
+    src         = trackBPHSingleMuonTable.src,                    
+)
 
-tracksBPHMCTable = cms.EDProducer("CandMCMatchTableProducerBPH",
-    recoObjects   = tracksBPHMCMatch.src,
+
+
+tracksBPHMCDiMuonTable = cms.EDProducer("CandMCMatchTableProducerBPH",
+    recoObjects   = tracksBPHMCMatchDiMuon.src,
+    objName       = trackBPHDiMuonTable.name,
+    objType       = trackBPHDiMuonTable.name,
     genParts      = cms.InputTag("finalGenParticlesBPH"),
     mcMap         = cms.InputTag("tracksBPHMCMatch"),
-    objName       = trackBPHTable.name,
-    objType       = trackBPHTable.name,
     objBranchName = cms.string("genPart"),
     genBranchName = cms.string("track"),
     docString     = cms.string("MC matching to status==1 kaons or pions"),
 )
 
 
-tracksBPHSequence   = cms.Sequence(tracksBPH)
-tracksBPHSequenceMC = cms.Sequence(tracksBPH + tracksBPHMCMatch)
-tracksBPHTables     = cms.Sequence(trackBPHTable)
-tracksBPHTablesMC   = cms.Sequence(trackBPHTable + tracksBPHMCTable)
+tracksBPHMCSingleMuonTable = tracksBPHMCDiMuonTable.clone(
+    recoObjects   = tracksBPHMCMatchSingleMuon.src,
+    objName       = trackBPHSingleMuonTable.name,
+    objType       = trackBPHSingleMuonTable.name,
+)
+
+
+tracksBPHSequenceDiMuon   = cms.Sequence(tracksBPHDiMuon)
+tracksBPHSequenceMCDiMuon = cms.Sequence(tracksBPHDiMuon + tracksBPHMCMatchDiMuon)
+tracksBPHDiMuonTables     = cms.Sequence(trackBPHDiMuonTable)
+tracksBPHDiMuonTablesMC   = cms.Sequence(trackBPHDiMuonTable + tracksBPHMCDiMuonTable)
+
+tracksBPHSequenceSingleMuon   = cms.Sequence(tracksBPHSingleMuon)
+tracksBPHSequenceMCSingleMuon = cms.Sequence(tracksBPHSingleMuon + tracksBPHMCMatchSingleMuon)
+tracksBPHSingleMuonTables     = cms.Sequence(trackBPHSingleMuonTable)
+tracksBPHSingleMuonTablesMC   = cms.Sequence(trackBPHSingleMuonTable + tracksBPHMCSingleMuonTable)
+
