@@ -27,9 +27,11 @@
 #include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 #include "helper.h"
 
+template<typename Lepton>
 class TrackMerger : public edm::global::EDProducer<> {
 
 public:
+  typedef std::vector<Lepton> LeptonCollection;
 
   //would it be useful to give this a bit more standard structure?
   explicit TrackMerger(const edm::ParameterSet &cfg):
@@ -37,7 +39,7 @@ public:
     beamSpotSrc_(consumes<reco::BeamSpot>(cfg.getParameter<edm::InputTag>("beamSpot"))),
     tracksToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("tracks"))),
     lostTracksToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("lostTracks"))),
-    dileptonToken_(consumes<pat::CompositeCandidateCollection>(cfg.getParameter<edm::InputTag>("dileptons"))),
+    trgmuonToken_(consumes<LeptonCollection>(cfg.getParameter<edm::InputTag>("trgmuons"))),
     muonToken_(consumes<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
     eleToken_(consumes<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
     maxDzDilep_(cfg.getParameter<double>("maxDzDilep")),
@@ -61,7 +63,8 @@ private:
   const edm::EDGetTokenT<reco::BeamSpot> beamSpotSrc_;
   const edm::EDGetTokenT<pat::PackedCandidateCollection> tracksToken_;
   const edm::EDGetTokenT<pat::PackedCandidateCollection> lostTracksToken_;
-  const edm::EDGetTokenT<pat::CompositeCandidateCollection> dileptonToken_;
+  const edm::EDGetTokenT<LeptonCollection> trgmuonToken_;
+
   const edm::EDGetTokenT<pat::MuonCollection> muonToken_;
   const edm::EDGetTokenT<pat::ElectronCollection> eleToken_;
 
@@ -72,7 +75,8 @@ private:
 };
 
 
-void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &stp) const {
+template<typename Lepton>
+void TrackMerger<Lepton>::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const &stp) const {
 
   //input
   edm::Handle<reco::BeamSpot> beamSpotHandle;
@@ -87,9 +91,8 @@ void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const 
   evt.getByToken(tracksToken_, tracks);
   edm::Handle<pat::PackedCandidateCollection> lostTracks;
   evt.getByToken(lostTracksToken_, lostTracks);
-  edm::Handle<pat::CompositeCandidateCollection> dileptons;
-  evt.getByToken(dileptonToken_, dileptons);
-
+  edm::Handle<LeptonCollection> trgmuons;
+  evt.getByToken(trgmuonToken_, trgmuons);
   edm::Handle<pat::MuonCollection> muons;
   evt.getByToken(muonToken_, muons);
   edm::Handle<pat::ElectronCollection> pfele;
@@ -123,12 +126,12 @@ void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const 
 
     bool skipTrack = true;
     float dzTrg = 0.0;
-    for (const pat::CompositeCandidate & dilep : *dileptons) {
+    for (const Lepton & trgmu : *trgmuons) {
       //if dz is negative it is deactivated
-      if ( fabs(trk.vz() - dilep.vz()) > maxDzDilep_ && maxDzDilep_ > 0)
+      if ( fabs(trk.vz() - trgmu.vz()) > maxDzDilep_ && maxDzDilep_ > 0 )
         continue;
       skipTrack = false;
-      dzTrg = trk.vz() - dilep.vz();
+      dzTrg = trk.vz() - trgmu.vz();
       break; // at least for one dilepton candidate to pass this cuts
     }
 
@@ -145,7 +148,6 @@ void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const 
     float DCABSErr = DCA.second;
     float DCASig = (DCABSErr != 0 && float(DCABSErr) == DCABSErr) ? fabs(DCABS / DCABSErr) : -1;
     if (DCASig >  dcaSig_  && dcaSig_ > 0) continue;
-
 
     // clean tracks wrt to all muons
     int matchedToMuon       = 0;
@@ -276,6 +278,9 @@ void TrackMerger::produce(edm::StreamID, edm::Event &evt, edm::EventSetup const 
   evt.put(std::move(tracks_out_match), "SelectedTracks");
 }
 
+typedef TrackMerger<pat::Muon> TrackMergerSingleMuon;
+typedef TrackMerger<pat::CompositeCandidate> TrackMergerDiMuon;
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(TrackMerger);
+DEFINE_FWK_MODULE(TrackMergerSingleMuon);
+DEFINE_FWK_MODULE(TrackMergerDiMuon);
