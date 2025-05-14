@@ -137,12 +137,12 @@ allSingleMuonTable = muonBPHSingleMuonTable.clone(
 )
 
 
-muonBPHDiMuonDiMuonSequence   = cms.Sequence(muonBPHDiMuon)
+muonBPHDiMuonSequence   = cms.Sequence(muonBPHDiMuon)
 muonBPHDiMuonSequenceMC = cms.Sequence(muonBPHDiMuon + muonBPHDiMuonMCMatch)
 muonBPHDiMuonTables     = cms.Sequence(muonBPHDiMuonTable)
 muonBPHDiMuonTablesMC   = cms.Sequence(muonBPHDiMuonTable + muonBPHDiMuonMCTable)
 
-muonBPHSingleMuonSingleMuonSequence   = cms.Sequence(muonBPHSingleMuon)
+muonBPHSingleMuonSequence   = cms.Sequence(muonBPHSingleMuon)
 muonBPHSingleMuonSequenceMC = cms.Sequence(muonBPHSingleMuon + muonBPHSingleMuonMCMatch)
 muonBPHSingleMuonTables     = cms.Sequence(muonBPHSingleMuonTable)
 muonBPHSingleMuonTablesMC   = cms.Sequence(muonBPHSingleMuonTable + muonBPHSingleMuonMCTable)
